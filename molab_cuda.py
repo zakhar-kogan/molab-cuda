@@ -66,6 +66,12 @@ REQUIRED_FILES = (
     'include/nvtx3/nvToolsExt.h',
     'include/curand_kernel.h',
     'include/cublas_v2.h',
+    # Libraries, not just headers. A tree can carry every header and still fail
+    # to link minutes into a build: observed on Molab, where persistent storage
+    # dropped libnvrtc.so.13 and nvvm/bin/cicc while leaving the rest intact.
+    'lib/libnvrtc.so',
+    'lib/libcudart.so',
+    'lib/libnvJitLink.so',
 )
 
 DRIVER_DIRS = ('/usr/lib/x86_64-linux-gnu', '/usr/lib64')
@@ -101,9 +107,12 @@ def detect_arch() -> str:
     return arch
 
 
-def _pip_install(packages, target: Path | None, cache_dir: Path) -> None:
+def _pip_install(packages, target: Path | None, cache_dir: Path,
+                 force: bool = False) -> None:
     command = [sys.executable, '-m', 'pip', 'install', '--quiet', '--upgrade',
                '--cache-dir', str(cache_dir)]
+    if force:
+        command.append('--force-reinstall')
     if target is not None:
         command += ['--target', str(target)]
     subprocess.run([*command, *packages], check=True)
@@ -160,14 +169,23 @@ def ensure_toolkit(prefix: str | os.PathLike = '/marimo/storage/cuda-toolkit',
     for directory in (prefix, cache_dir):
         directory.mkdir(parents=True, exist_ok=True)
 
+    # Repair first: the layout check below counts symlinks, and on lossy storage
+    # a dropped symlink is a repair, not a reinstall.
+    if root.is_dir():
+        _repair_layout(root)
+
     if _missing(root):
+        # --force-reinstall because pip reads dist-info, not payload. When
+        # storage drops bin/ but leaves nvidia_cuda_nvcc-*.dist-info behind,
+        # a plain install reports success and changes nothing.
         pinned = [f'{name}=={version}' for name in TOOLKIT_PACKAGES]
-        _pip_install([*pinned, *LIBRARY_PACKAGES], prefix, cache_dir)
+        _pip_install([*pinned, *LIBRARY_PACKAGES], prefix, cache_dir,
+                     force=True)
+        if root.is_dir():
+            _repair_layout(root)
     still_missing = _missing(root)
     if still_missing:
         raise RuntimeError(f'CUDA toolkit install is incomplete: {still_missing}')
-
-    _repair_layout(root)
 
     absent = [name for name in BUILD_TOOLS if shutil.which(name) is None]
     if absent:

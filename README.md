@@ -84,13 +84,22 @@ faithfully. Observed across a single sandbox hop: symlinks dropped throughout a
 `src/`; a `kagglehub` directory that kept its structure but lost a 12 MB
 `model.pth`.
 
+A later sandbox added three more shapes, including two inside the toolkit
+itself: `libnvrtc.so.13` and `nvvm/bin/cicc` dropped while every header
+survived, and later the whole of `bin/` — nvcc included — while all eleven
+`*.dist-info` directories remained.
+
+That last one is worth stating separately, because it defeats the obvious fix:
+**pip reads `dist-info`, not payload.** With the metadata intact and the files
+gone, `pip install` reports success and changes nothing, and the build then
+fails on a missing compiler. `ensure_toolkit()` therefore re-runs the layout
+repair on every call, checks libraries as well as headers, and reinstalls with
+`--force-reinstall` when anything is missing.
+
 Each produced a different and confusing failure, all with the same root cause:
 **a half-present cache is worse than an absent one**, because tools check for
 existence and skip the repair. Anything caching on this storage should validate
 by content, not by presence.
-
-`ensure_toolkit()` re-runs the layout repair every call for exactly this reason,
-so a dropped symlink is fixed rather than inherited.
 
 ## Moving between sandboxes
 
@@ -112,6 +121,14 @@ it builds and runs for `sm_120`.
 - `ensure_toolkit()` and `verify()` are exercised: they have provisioned a
   toolkit from scratch, reused a persisted one, repaired symlinks a sandbox hop
   had dropped, and compiled and run an `sm_120` kernel.
+- The completeness and `--force-reinstall` handling was derived from a later
+  sandbox where a partially-dropped toolkit cost about forty minutes, then
+  exercised as a module on Molab against `sm_120`: provisioning from scratch
+  took 8.1 s against a warm wheel cache and passed `verify()`; a second call
+  returned in 0.03 s without reinstalling; and after deleting `libnvrtc.so.13`
+  while leaving its `dist-info` in place — the exact shape of the observed
+  corruption — `ensure_toolkit()` detected the gap, repaired it in 8.0 s, and
+  `verify()` passed again.
 - `bundle()` and `restore()` have **never been executed end to end**. They were
   written against the persistence problem described above, and the first run
   will be their real test. Treat them as a sketch.
