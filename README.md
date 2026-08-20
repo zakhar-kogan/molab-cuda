@@ -12,9 +12,9 @@ molab_cuda.verify(toolkit)              # compiles AND runs a kernel for this GP
 subprocess.run(build_command, env={**os.environ, **toolkit.env})
 ```
 
-[PORTING.md](PORTING.md) has copy-pasteable prompts for running CayleyPy on
-Molab or porting any Kaggle GPU notebook, plus the Molab facts worth knowing
-before you start.
+Copy-pasteable agent prompts: [cayleypy.md](cayleypy.md) to run the CayleyPy
+solver, [PORTING.md](PORTING.md) to port any Kaggle GPU notebook — both with the
+Molab facts worth knowing before you start.
 
 ## Why this exists
 
