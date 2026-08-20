@@ -1,8 +1,28 @@
-# Porting a Kaggle GPU notebook to Molab
+# Running CUDA work on Molab
 
-Point an agent here: *"Use https://github.com/zakhar-kogan/molab-cuda/blob/master/PORTING.md."*
+Point an agent here: *"Use https://github.com/zakhar-kogan/molab-cuda/blob/master/molab.md."*
 
-Running CayleyPy specifically? Use [cayleypy.md](cayleypy.md) instead.
+## Run CayleyPy on molab
+
+```
+Run the CayleyPy beam-search solver on molab: <MOLAB_URL> token <TOKEN>
+Connect with /marimo-pair.
+
+- Toolkit: github.com/zakhar-kogan/molab-cuda — ensure_toolkit() + verify().
+- Solver: zakhar-kogan/MultiGPUBeamSearch @ fix/single-gpu-and-build-portability
+  (upstream crashes on 1 GPU, builds with -j2, reuses stale binaries).
+- Competition test.csv needs Kaggle creds (molab Secrets panel); the checkpoint
+  downloads token-free. puzzle_info.json can be rebuilt from the notebook's own
+  symmetry tables.
+- Cache under /marimo/storage/cayleypy/: toolkit, PIP_CACHE_DIR, kagglehub, repo,
+  build. Key the build dir by solver commit + arch + backend.
+- Read the molab facts below before starting.
+
+Done: a solve whose path passes exact replay.
+```
+
+Beam sizing is per-card and the shipped runtime profiles are `kaggle_2xt4`
+anchors — a starting point, not a tuned configuration.
 
 ## Port a Kaggle notebook to molab
 
