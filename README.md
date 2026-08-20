@@ -12,6 +12,9 @@ molab_cuda.verify(toolkit)              # compiles AND runs a kernel for this GP
 subprocess.run(build_command, env={**os.environ, **toolkit.env})
 ```
 
+Porting a Kaggle notebook to Molab? [PORTING.md](PORTING.md) is a
+copy-pasteable prompt covering the whole checklist, not just the toolkit.
+
 ## Why this exists
 
 [Molab](https://molab.marimo.io) GPU sandboxes ship the driver and PyTorch
